@@ -38,7 +38,6 @@ class Config:
     test_batch_size: int = 64           # Batch size for testing
     learning_rate: float = 0.001          # Learning rate
     learning_rate_finetune: float = 0.001  # Learning rate for finetuning
-    learning_rate_step: float = 0.7      # Learning rate decay factor
     learning_rate_critic: float = 0.2    # Learning rate for critic
     pretrain_learning_rate: float = 0.05  # Learning rate for pretraining
     classification_loss_weight: float = 50.0  # Weight for classification loss
@@ -48,22 +47,31 @@ class Config:
     optimizer: str = "adam"          # Optimizer: adadelta, adam
     explanation_mode: str = "input_x_gradient"  # Explanation method
 
+    # Scheduler parameters
+    # scheduler #TODO: add scheduler
+    lr_scheduling: bool = False  # Use learning rate scheduling
+    lr_scheduling_step: int = 5  # Step size for learning rate scheduling
+    learning_rate_step: float = 0.7      # Learning rate decay factor
+
     # Dataset parameters
-    n_critic_batches: int = 68           # Number of critic batches
+    # Number of critic batches (total_data_size = n_critic_batches * batch_size_critic)
+    n_critic_batches: int = 68
+    # Use separate critic set (True) or use training data for critic (False)
     sep_critic_set: bool = False         # Use separate critic set
-    n_epochs: int = 40                   # Number of joint training epochs
+    n_epochs: int = 15  # 40                 # Number of joint training epochs
     n_pretraining_epochs: int = 10       # Number of pretraining epochs
-    n_finetuning_epochs: int = 50        # Number of finetuning epochs
-    few_shot_train_percent: float = 1.0  # Percentage of training data to use
+    n_finetuning_epochs: int = 15  # 50       # Number of finetuning epochs
+    few_shot_train_percent: float = 0.5  # Percentage of training data to use
     # Percentage of test data to use (with respect to training data)
     few_shot_test_percent: float = 0.2
 
     # Logging parameters
     logging_disabled: bool = False       # Disable logging
-    log_interval: int = 1                # Log interval
-    log_interval_critic: int = 5         # Log interval for critic
-    log_interval_pretraining: int = 1    # Log interval for pretraining
-    log_interval_accuracy: int = 50      # Log interval for accuracy
+    log_interval: int = 12             # Log interval
+    log_interval_critic: int = 12         # Log interval for critic
+    log_interval_pretraining: int = 12    # Log interval for pretraining
+    # Log interval for accuracy (recommended = #batches)
+    log_interval_accuracy: int = 64
     run_name: str = ""                   # Name for the run
 
     @property
@@ -155,29 +163,31 @@ def parse_args() -> Config:
 
     # Dataset parameters
     parser.add_argument("--n_critic_batches", type=int,
-                        default=68, help="Number of critic batches")
+                        default=64, help="Number of critic batches")
     parser.add_argument("--sep_critic_set", action="store_true",
                         help="Use separate critic set")
-    parser.add_argument("--n_epochs", type=int, default=40,
+    parser.add_argument("--n_epochs", type=int, default=10,
                         help="Number of joint training epochs")
     parser.add_argument("--n_pretraining_epochs", type=int,
                         default=10, help="Number of pretraining epochs")
     parser.add_argument("--n_finetuning_epochs", type=int,
                         default=50, help="Number of finetuning epochs")
     parser.add_argument("--few_shot_train_percent", type=float,
-                        default=1.0, help="Percentage of training data to use")
+                        default=0.5, help="Percentage of training data to use")
+    parser.add_argument("--few_shot_test_percent", type=float,
+                        default=0.2, help="Percentage of test data to use")
 
     # Logging parameters
     parser.add_argument("--logging_disabled",
                         action="store_true", help="Disable logging")
     parser.add_argument("--log_interval", type=int,
-                        default=1, help="Log interval")
+                        default=100, help="Log interval")
     parser.add_argument("--log_interval_critic", type=int,
-                        default=5, help="Log interval for critic")
+                        default=100, help="Log interval for critic")
     parser.add_argument("--log_interval_pretraining", type=int,
-                        default=1, help="Log interval for pretraining")
+                        default=100, help="Log interval for pretraining")
     parser.add_argument("--log_interval_accuracy", type=int,
-                        default=50, help="Log interval for accuracy")
+                        default=100, help="Log interval for accuracy")
     parser.add_argument("--run_name", type=str, default="",
                         help="Name for the run")
 

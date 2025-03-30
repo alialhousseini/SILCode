@@ -210,7 +210,7 @@ class Trainer:
 
         # Set up learning rate scheduler if enabled
         if getattr(self.config, 'lr_scheduling', False):
-            scheduler = StepLR(optimizer, step_size=1,
+            scheduler = StepLR(optimizer, step_size=self.config.lr_scheduling_step,
                                gamma=self.config.learning_rate_step)
         else:
             scheduler = None
@@ -267,7 +267,7 @@ class Trainer:
                 # Update loss statistics
                 epoch_loss += total_loss.item()
                 epoch_classification_loss += classification_loss.item()
-                epoch_explanation_loss += explanation_loss.item()
+                epoch_explanation_loss += explanation_loss  # float: no .items()
 
                 # Update global step counter
                 self.global_step += 1
@@ -277,7 +277,7 @@ class Trainer:
                     print(f"Joint Train Epoch: {epoch+1}/{self.config.n_epochs} "
                           f"[{batch_idx+1}/{len(self.dataloaders.train)}] "
                           f"Loss: {total_loss.item():.6f} "
-                          f"(C: {classification_loss.item():.6f}, E: {explanation_loss.item():.6f})")
+                          f"(C: {classification_loss.item():.6f}, E: {explanation_loss:.6f})")
 
                     # Log to TensorBoard
                     if self.writer:
@@ -286,7 +286,7 @@ class Trainer:
                         self.writer.add_scalar(
                             "JointTraining/ClassificationLoss", classification_loss.item(), self.global_step)
                         self.writer.add_scalar(
-                            "JointTraining/ExplanationLoss", explanation_loss.item(), self.global_step)
+                            "JointTraining/ExplanationLoss", explanation_loss, self.global_step)
 
                 # Evaluate accuracy periodically
                 if batch_idx % self.config.log_interval_accuracy == 0:
@@ -364,6 +364,7 @@ class Trainer:
         classification_criterion = nn.CrossEntropyLoss()
         explanation_criterion = nn.MSELoss()
 
+        # TODO: A scheduler for each phase?
         # Set up learning rate scheduler if enabled
         if getattr(self.config, 'lr_scheduling', False):
             scheduler = StepLR(optimizer, step_size=1,
@@ -378,6 +379,8 @@ class Trainer:
         # Initialize epoch progress
         start_time = time.time()
 
+        
+        # FT (check pg 24 is used to prevent divergence of explanations)
         # Finetuning loop
         for epoch in range(self.config.n_finetuning_epochs):
             self.current_epoch = epoch
@@ -422,7 +425,7 @@ class Trainer:
                 # Update loss statistics
                 epoch_loss += total_loss.item()
                 epoch_classification_loss += classification_loss.item()
-                epoch_explanation_loss += explanation_loss.item()
+                epoch_explanation_loss += explanation_loss
 
                 # Update global step counter
                 self.global_step += 1
@@ -432,7 +435,7 @@ class Trainer:
                     print(f"Finetune Epoch: {epoch+1}/{self.config.n_finetuning_epochs} "
                           f"[{batch_idx+1}/{len(finetuning_loader)}] "
                           f"Loss: {total_loss.item():.6f} "
-                          f"(C: {classification_loss.item():.6f}, E: {explanation_loss.item():.6f})")
+                          f"(C: {classification_loss.item():.6f}, E: {explanation_loss:.6f})")
 
                     # Log to TensorBoard
                     if self.writer:
@@ -441,7 +444,7 @@ class Trainer:
                         self.writer.add_scalar(
                             "Finetuning/ClassificationLoss", classification_loss.item(), self.global_step)
                         self.writer.add_scalar(
-                            "Finetuning/ExplanationLoss", explanation_loss.item(), self.global_step)
+                            "Finetuning/ExplanationLoss", explanation_loss, self.global_step)
 
                 # Evaluate accuracy periodically
                 if batch_idx % self.config.log_interval_accuracy == 0:
@@ -595,6 +598,7 @@ class Trainer:
                 self.learner.get_explanation_batch(inputs, labels))
 
         # Train the critic
+        #TODO: Add optimizer and scheduler for critic
         _, _, mean_loss = critic.train(
             explanations=explanations,
             learning_rate=self.config.learning_rate_critic

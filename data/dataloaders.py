@@ -12,7 +12,6 @@ from typing import Tuple, Optional, Dict, Any, List, NamedTuple
 
 # Import datasets
 from data.datasets import get_dataset, ExplanationDataset
-from config.config import Config
 
 
 class DataLoaders(NamedTuple):
@@ -32,7 +31,8 @@ class DataLoaders(NamedTuple):
 
 
 def create_dataloaders(
-    config: Config,
+    config,
+    device: Optional[torch.device] = None
 ) -> DataLoaders:
     """
     Create data loaders based on configuration.
